@@ -1,0 +1,4 @@
+polkit.addRule(function(action, subject) {
+	if ((action.id == "ejabberd.ejabberdctl.run") && (subject.isInGroup("ejabberd")))
+		return polkit.Result.YES;
+});
