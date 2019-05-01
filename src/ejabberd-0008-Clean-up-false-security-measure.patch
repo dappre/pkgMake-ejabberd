@@ -1,0 +1,26 @@
+From c827055ee650243c2af546753743f692ae0fe758 Mon Sep 17 00:00:00 2001
+From: Peter Lemenkov <lemenkov@gmail.com>
+Date: Wed, 17 Jul 2013 14:56:09 +0400
+Subject: [PATCH 08/10] Clean up false security measure
+
+Signed-off-by: Peter Lemenkov <lemenkov@gmail.com>
+---
+ src/Makefile.in | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/Makefile.in b/src/Makefile.in
+index 64ed856..1a1fa41 100644
+--- a/src/Makefile.in
++++ b/src/Makefile.in
+@@ -202,7 +202,7 @@ install: all
+ 	#
+ 	# Administration script
+ 	[ -d $(SBINDIR) ] || install -d -m 755 $(SBINDIR)
+-	install -m 550 $(G_USER) ejabberdctl.example $(SBINDIR)/ejabberdctl
++	install -m 755 $(G_USER) ejabberdctl.example $(SBINDIR)/ejabberdctl
+ 	#
+ 	# Init script
+ 	sed -e "s*@ctlscriptpath@*$(SBINDIR)*" \
+-- 
+1.8.3.1
+
