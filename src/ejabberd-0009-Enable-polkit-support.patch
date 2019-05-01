@@ -1,0 +1,23 @@
+From f2420ac96bb52eeb5a01111cabb4f5580db42142 Mon Sep 17 00:00:00 2001
+From: Peter Lemenkov <lemenkov@gmail.com>
+Date: Wed, 17 Jul 2013 14:51:04 +0400
+Subject: [PATCH 09/10] Enable polkit support
+
+Signed-off-by: Peter Lemenkov <lemenkov@gmail.com>
+---
+ src/ejabberdctl.template | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/ejabberdctl.template b/src/ejabberdctl.template
+index b298e01..fa6c5c2 100644
+--- a/src/ejabberdctl.template
++++ b/src/ejabberdctl.template
+@@ -1,4 +1,4 @@
+-#!/bin/sh
++#!/usr/bin/pkexec /bin/sh
+ 
+ # define default configuration
+ POLL=true
+-- 
+1.8.3.1
+
