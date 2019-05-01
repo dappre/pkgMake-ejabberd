@@ -143,22 +143,19 @@ lazyStage {
 				release = version.split('-')[1]
 				version = version - ~/-.+$/
 			}
-			ssh(
-"""
-echo yum add repo 
-"""
-			)
 			sh(
 """
+DIST=\"\${LAZY_LABEL%%-*}\${LAZY_LABEL##*-}-\$(arch)\"
+sudo yum-config-manager --add-repo http://mrepo.boxtel/mrepo/current/\${DIST}/${env.DEPLOY_REPO}.repo
 make \
 VERSION=${version} \
 RELEASE=${release} \
 TARGET_DIR=\$(pwd)/${env.TARGET_DIR} \
-DISTS_DIR=\$(pwd)/${env.TARGET_DIR}/dists/${env.LAZY_LABEL} \
+DISTS_DIR=\$(pwd)/${env.TARGET_DIR}/dists/\${DIST} \
 LOG_FILE=/dev/stdout
 """
 			)
-			sh("sudo yum -y install \$(pwd)/${env.TARGET_DIR}/dists/${env.LAZY_LABEL}/*.rpm")
+			sh("DIST=\"\${LAZY_LABEL%%-*}\${LAZY_LABEL##*-}-\$(arch)\" && sudo yum -y install \$(pwd)/${env.TARGET_DIR}/dists/\${DIST}/*.rpm")
 		},
 		in: '*', on: 'docker',
 	]
@@ -183,6 +180,7 @@ lazyStage {
 			sh(
 """
 DIST=\"\${LAZY_LABEL%%-*}\${LAZY_LABEL##*-}-\$(arch)\"
+sudo yum-config-manager --add-repo http://mrepo.boxtel/mrepo/current/\${DIST}/${env.DEPLOY_REPO}.repo
 make \
 VERSION=${version} \
 RELEASE=${release} \
