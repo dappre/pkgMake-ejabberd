@@ -3,17 +3,18 @@ Description=A distributed, fault-tolerant Jabber/XMPP server
 After=network.target
 
 [Service]
+EnvironmentFile=/etc/sysconfig/ejabberd
 Type=oneshot
 User=ejabberd
 Group=ejabberd
 LimitNOFILE=16000
 RestartSec=5
 ExecStart=/usr/bin/bash /usr/bin/ejabberdctl \
-		--config /etc/ejabberd/ejabberd.cfg \
+		--config ${CONFIG_FILE} \
 		--ctl-config /etc/ejabberd/ejabberdctl.cfg \
 		--logs "/var/log/ejabberd" \
 		--spool "/var/lib/ejabberd/spool" start
-ExecStop=/usr/sbin/ejabberdctl stop
+ExecStop=/usr/bin/ejabberdctl stop
 RemainAfterExit=yes
 
 [Install]
