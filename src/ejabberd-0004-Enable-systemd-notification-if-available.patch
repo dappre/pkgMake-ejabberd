@@ -1,0 +1,28 @@
+From 026f1819fc45d8945f811173b48265f0af772b5c Mon Sep 17 00:00:00 2001
+From: Randy Barlow <randy@electronsweatshop.com>
+Date: Sat, 11 Nov 2017 00:48:30 -0500
+Subject: [PATCH] Enable systemd notification if available.
+
+This patch was originally written by Peter Lemenkov, and was
+adapted for ejabberd 17.09.
+
+Signed-off-by: Randy Barlow <randy@electronsweatshop.com>
+---
+ src/ejabberd_app.erl | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/src/ejabberd_app.erl b/src/ejabberd_app.erl
+index 56f22522..b0796afb 100644
+--- a/src/ejabberd_app.erl
++++ b/src/ejabberd_app.erl
+@@ -53,6 +53,7 @@ start(normal, _Args) ->
+     case ejabberd_sup:start_link() of
+ 	{ok, SupPid} ->
+ 	    register_elixir_config_hooks(),
++        {module, sd_notify} == code:load_file(sd_notify) andalso sd_notify:sd_notify(0, "READY=1\nSTATUS=Initialized\nMAINPID=" ++ os:getpid() ++ "\n"),
+ 	    ejabberd_cluster:wait_for_sync(infinity),
+ 	    {T2, _} = statistics(wall_clock),
+ 	    ?INFO_MSG("ejabberd ~s is started in the node ~p in ~.2fs",
+-- 
+2.14.3
+
