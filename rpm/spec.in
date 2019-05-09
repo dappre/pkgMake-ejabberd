@@ -42,25 +42,13 @@ Source12:	ejabberdctl.polkit.actions
 Source13:	ejabberdctl.polkit.rules
 
 # Use ejabberd as an example for PAM service name (fedora/epel-specific)
-#Patch1: ejabberd-0001-Fix-PAM-service-example-name-to-match-actual-one.patch
-# fixed delays in s2s connections
-#Patch2: ejabberd-0002-Fixed-delays-in-s2s-connections.patch
-# Introducing mod_admin_extra
-#Patch3: ejabberd-0003-Introducing-mod_admin_extra.patch
-# BZ# 439583, 452326, 451554, 465196, 502361 (fedora/epel-specific)
-#Patch4: ejabberd-0004-Fedora-specific-changes-to-ejabberdctl.patch
-# Fix so-lib permissions while installing (fedora/epel-specific)
-#Patch5:	ejabberd-0005-Install-.so-objects-with-0755-permissions.patch
-# Backported from upstream
-#Patch6: ejabberd-0006-Support-SASL-GSSAPI-authentication-thanks-to-Mikael-.patch
-# Disable IP restriction for ejabberdctl (seems that it doesn't work well)
-#Patch7: ejabberd-0007-Disable-INET_DIST_INTERFACE-by-default.patch
-# Don't try to make system-wide scripts unreadable for users (fedora/epel-specific)
-#Patch8: ejabberd-0008-Clean-up-false-security-measure.patch
-# polkit support
-Patch9: ejabberd-0009-Enable-polkit-support.patch
-# polkit support
-Patch10:ejabberd-0010-Install-into-BINDIR-instead-of-SBINDIR.patch
+Patch1: ejabberd-0001-Fix-PAM-service-example-name-to-match-actual-one.patch
+# https://github.com/processone/ejabberd/issues/1850
+Patch2: ejabberd-0002-Drop-post_hook_configure-from-rebar.config.patch
+# Fedora-specific
+Patch3: ejabberd-0003-Install-into-BINDIR-instead-of-SBINDIR.patch
+# Fedora-specific
+Patch4: ejabberd-0004-Enable-systemd-notification-if-available.patch
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
@@ -78,7 +66,7 @@ BuildRequires:	gcc-c++
 Requires(pre):		shadow-utils
 
 Requires(post): /usr/bin/openssl
-%if 0%{?el5}%{?el6}
+%if 0%{?el6}
 Requires(post): /sbin/chkconfig
 Requires(preun): /sbin/chkconfig
 Requires(preun): /sbin/service
@@ -127,7 +115,7 @@ Requires:       openssl >= 1.0.0
 Requires:       erlang >= 17.5
 #Error:erlang(esasl:str_error/2)
 #Requires:       erlang-esasl
-%if 0%{?el5}%{?el6}
+%if 0%{?el6}
 Requires:       usermode
 %else
 # for /usr/bin/pkexec
@@ -146,17 +134,11 @@ Windows NT/2000/XP).
 %prep
 %setup -q
 
-#%patch1 -p1 -b .pam_name
-#%patch2 -p1 -b .s2s_delays
-#%patch3 -p1 -b .mod_admin_extra
-#%patch4 -p1 -b .fedora_specific
-#%patch5 -p1 -b .fix_perms
-#%patch6 -p1 -b .gssapi
-#%patch7 -p1 -b .disable_ip_restriction_for_ejabberdctl
-#%patch8 -p1 -b .dont_hide
-%if 0%{?el7}%{?fedora}
-#%patch9 -p1 -b .use_polkit
-#%patch10 -p1 -b .usr_bin
+%patch1 -p1 -b .pam_name
+%patch2 -p1 -b .post_hook
+%patch3 -p1 -b .usr_bin
+%if ! 0%{?el6}
+%patch4 -p1 -b .systemd_notif
 %endif
 
 
@@ -175,28 +157,28 @@ make
 %install
 rm -rf %{buildroot}
 
-#pushd src
 make install DESTDIR=%{buildroot}
-#popd
+
+install -d -m 0750 %{buildroot}%{_sysconfdir}/%{name}
+install -D -p -m 0644 ejabberd.yml.example %{buildroot}%{_sysconfdir}/%{name}/ejabberd.yml
+install -D -p -m 0644 ejabberdctl.cfg.example %{buildroot}%{_sysconfdir}/%{name}/ejabberdctl.cfg
+install -D -p -m 0644 inetrc %{buildroot}%{_sysconfdir}/%{name}/inetrc
+
+install -d -m 0750 %{buildroot}/var/lib/ejabberd/spool
+install -d -m 0750 %{buildroot}/var/lock/ejabberdctl
+install -d -m 0750 %{buildroot}/var/log/ejabberd
 
 # fix example SSL certificate path to real one, which we created recently (see above)
-%{__perl} -pi -e 's!/path/to/ssl.pem!/etc/ejabberd/ejabberd.pem!g' %{buildroot}/etc/ejabberd/ejabberd.cfg
+%{__perl} -pi -e 's!/path/to/ssl.pem!/etc/ejabberd/ejabberd.pem!g' %{buildroot}/etc/ejabberd/ejabberd.yml
 
+install -D -p -m 0755 tools/captcha.sh %{buildroot}%{_libdir}/%{libname}/priv/bin/captcha.sh
 # fix captcha path
-%{__perl} -pi -e 's!/lib/ejabberd/priv/bin/captcha.sh!%{_libdir}/%{libname}/priv/bin/captcha.sh!g' %{buildroot}/etc/ejabberd/ejabberd.cfg
-
-mkdir -p %{buildroot}/var/log/ejabberd
-mkdir -p %{buildroot}/var/lib/ejabberd/spool
+%{__perl} -pi -e 's!/lib/ejabberd/priv/bin/captcha.sh!%{_libdir}/%{name}/priv/bin/captcha.sh!g' %{buildroot}/etc/ejabberd/ejabberd.yml
 
 install -D -p -m 0644 %{S:9} %{buildroot}%{_sysconfdir}/pam.d/ejabberdctl
 install -D -p -m 0644 %{S:11} %{buildroot}%{_sysconfdir}/pam.d/ejabberd
-%if 0%{?el5}
-# No password-auth PAM scheme in EL5 - see rhbz #758601
-sed -i -e "s,password-auth,system-auth,g" %{buildroot}%{_sysconfdir}/pam.d/ejabberd
-%endif
 
-
-%if 0%{?el5}%{?el6}
+%if 0%{?el6}
 # install init-script
 install -D -p -m 0755 %{S:1} %{buildroot}%{_initrddir}/ejabberd
 # install sysconfig file
@@ -224,7 +206,7 @@ install -p -m 0644 sql/pg.sql %{buildroot}%{_datadir}/%{name}
 # for this *default* script, which is not intended to be changed
 chmod 755 %{buildroot}%{_libdir}/%{libname}/priv/bin/captcha.sh
 
-%if 0%{?el5}%{?el6}
+%if 0%{?el6}
 # Use usermode on old systems
 mkdir -p %{buildroot}%{_bindir}
 ln -s consolehelper %{buildroot}%{_bindir}/ejabberdctl
@@ -277,7 +259,7 @@ fi
 
 
 %post
-%if 0%{?el5}%{?el6}
+%if 0%{?el6}
 if [ $1 -eq 1 ]; then
 	# Initial installation
 	/sbin/chkconfig --add %{name} || :
@@ -309,7 +291,7 @@ fi)
 
 
 %preun
-%if 0%{?el5}%{?el6}
+%if 0%{?el6}
 if [ $1 -eq 0 ]; then
 	# Package removal, not upgrade
         /sbin/service %{name} stop >/dev/null 2>&1 || :
@@ -321,7 +303,7 @@ fi
 
 
 %postun
-%if 0%{?el5}%{?el6}
+%if 0%{?el6}
 if [ $1 -ge 1 ]; then
 	# Package upgrade, not uninstall
 	/sbin/service %{name} condrestart >/dev/null 2>&1
@@ -343,7 +325,7 @@ rm -rf %{buildroot}
 %attr(640,ejabberd,ejabberd) %config(noreplace) %{_sysconfdir}/ejabberd/ejabberdctl.cfg
 %attr(640,ejabberd,ejabberd) %config(noreplace) %{_sysconfdir}/ejabberd/inetrc
 
-%if 0%{?el5}%{?el6}
+%if 0%{?el6}
 %config(noreplace) %{_sysconfdir}/sysconfig/%{name}
 %{_initrddir}/%{name}
 %else
@@ -354,14 +336,13 @@ rm -rf %{buildroot}
 %config(noreplace) %{_sysconfdir}/logrotate.d/%{name}
 %config(noreplace) %{_sysconfdir}/pam.d/%{name}
 %config(noreplace) %{_sysconfdir}/pam.d/ejabberdctl
-%attr(755,root,root) %{_sbindir}/ejabberdctl
-%if 0%{?el5}%{?el6}
+%if 0%{?el6}
 %config(noreplace) %{_sysconfdir}/security/console.apps/ejabberdctl
-%{_bindir}/ejabberdctl
 %else
 %{_datadir}/polkit-1/actions/ejabberdctl.policy
 %{_datadir}/polkit-1/rules.d/51-ejabberdctl.rules
 %endif
+%{_bindir}/ejabberdctl
 
 #%dir %{_libdir}/%{libname}
 #%dir %{_libdir}/%{libname}/ebin

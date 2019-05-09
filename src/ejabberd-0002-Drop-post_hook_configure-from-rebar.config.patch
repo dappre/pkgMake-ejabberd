@@ -1,0 +1,33 @@
+From 38ad990f72bdaf94cb2fb821154861b11167cabd Mon Sep 17 00:00:00 2001
+From: Randy Barlow <randy@electronsweatshop.com>
+Date: Sun, 22 Oct 2017 12:55:16 -0400
+Subject: [PATCH] Drop post_hook_configure from rebar.config.
+
+Signed-off-by: Randy Barlow <randy@electronsweatshop.com>
+---
+ rebar.config | 9 ---------
+ 1 file changed, 9 deletions(-)
+
+diff --git a/rebar.config b/rebar.config
+index 240e2b6a..465e1aab 100644
+--- a/rebar.config
++++ b/rebar.config
+@@ -145,15 +145,6 @@
+ {if_version_above, "17", {cover_enabled, true}}.
+ {cover_export_enabled, true}.
+ 
+-{post_hook_configure, [{"fast_tls", []},
+-                       {"stringprep", []},
+-                       {"fast_yaml", []},
+-                       {if_var_true, sip, {"esip", []}},
+-                       {"fast_xml", [{if_var_true, full_xml, "--enable-full-xml"}]},
+-                       {if_var_true, pam, {"epam", []}},
+-                       {if_var_true, zlib, {"ezlib", []}},
+-                       {if_var_true, iconv, {"iconv", []}}]}.
+-
+ {port_env, [{"CFLAGS", "-g -O2 -Wall"}]}.
+ 
+ {port_specs, [{"priv/lib/jid.so", ["c_src/jid.c"]}]}.
+-- 
+2.14.2
+
